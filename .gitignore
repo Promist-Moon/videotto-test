@@ -17,3 +17,5 @@ output.mp4
 # Internal tools — do not ship to candidates
 generate_sample_data.py
 diagnose_video.py
+
+LOGS.md
