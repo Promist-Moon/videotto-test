@@ -23,13 +23,23 @@ In `bbox_center`, added check: if `x2 < x1` or `y2 < y1`, return `None` (treat a
 
 ## Task 2: Feature Implementation
 
-In this task, we implemented `debounce_speaker_ids` in `src/debouncer.py`, in which we:
-- Run-length encode speaker IDs
-- Replace short runs (< min_hold_frames) with nearest stable speaker ID
-- Preserve `None` segments
-- Expand back to per-frame list
+In this task, we implemented `debounce_speaker_ids` in `src/debouncer.py` to reduce short-lived speaker-ID flicker before it reaches the crop tracker.
 
-This reduces jittery crop snaps from transient speaker flickers.
+The method works in four stages:
+- It first run-length encodes the frame-level speaker sequence into runs of `(speaker_id, length)`. This makes it easier to reason about sustained speaker holds versus short noise bursts.
+- It then classifies each run with a stability check: a run is considered stable only if the speaker ID is not `None` and its length is at least `min_hold_frames`.
+- If a run is shorter than `min_hold_frames`, it is treated as a transient flicker rather than a real speaker change. The debouncer tries to replace it with the closest stable speaker context:
+  - It prefers the most recent stable run on the left, which keeps continuity with the speaker that was already active.
+  - If there is no stable run on the left, it falls back to the next stable run on the right.
+  - If neither side contains a stable speaker, the run is left unchanged.
+- After replacements are decided at the run level, the runs are expanded back into the original per-frame list format expected by the rest of the pipeline.
+
+There are also important checks and constraints in the implementation:
+- Empty input returns an empty list immediately.
+- `None` runs are never modified. These represent frames where no confident speaker was detected, so the debouncer preserves that signal instead of inventing a speaker.
+- Stable runs are never rewritten; only short non-`None` runs are candidates for replacement.
+
+This approach was chosen because it smooths out short classification jitter without hiding genuine speaker changes that persist long enough to be considered stable. In practice, it reduces unnecessary crop snaps caused by 1- to 10-frame speaker flickers.
 
 ## Task 3: Tests
 
