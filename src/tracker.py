@@ -58,6 +58,23 @@ def track_face_crop(
     if not face_bbox_timeline:
         return [], []
 
+    # Normalize speaker_track_ids to int or None
+    if speaker_track_ids:
+        normalized_speaker_ids = []
+        for sid in speaker_track_ids:
+            if sid is None:
+                normalized_speaker_ids.append(None)
+            elif isinstance(sid, int):
+                normalized_speaker_ids.append(sid)
+            elif isinstance(sid, (str, float)):
+                try:
+                    normalized_speaker_ids.append(int(sid))
+                except (ValueError, TypeError):
+                    normalized_speaker_ids.append(None)
+            else:
+                normalized_speaker_ids.append(None)
+        speaker_track_ids = normalized_speaker_ids
+
     # Debounce rapid speaker-ID flickers before processing
     if speaker_track_ids and min_speaker_hold_frames > 1:
         speaker_track_ids = debounce_speaker_ids(

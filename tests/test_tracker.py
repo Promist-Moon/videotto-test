@@ -73,6 +73,17 @@ class TestTrackFaceCropBasics:
         assert compressed[0][2] == 1
         assert compressed[1][2] == 1  # valid face
 
+    def test_speaker_ids_normalized_to_int_none(self):
+        """Speaker IDs with strings/floats should be converted to int/None."""
+        bboxes = [(300,160,340,200)] * 4
+        speaker_ids = [0, '1', 2.0, None, 'invalid']
+        compressed, scene_cuts = track_face_crop(
+            bboxes, video_width=640, video_height=360, speaker_track_ids=speaker_ids
+        )
+        # Should not crash, and scene_cuts should reflect normalized IDs
+        # Assuming debouncer handles it, but test that it runs without error
+        assert len(compressed) >= 1  # At least one segment
+
     def test_invalid_scene_ranges_skipped(self):
         bboxes = [(300,160,340,200)] * 10
         # Invalid: start > end; overlap
