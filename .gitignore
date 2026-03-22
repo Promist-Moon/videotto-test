@@ -10,6 +10,7 @@ build/
 .env
 .idea/
 .vscode/
+.DS_Store
 *.swp
 *.swo
 output.mp4
