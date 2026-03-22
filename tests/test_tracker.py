@@ -59,3 +59,22 @@ class TestTrackFaceCropBasics:
         assert len(compressed) == 2
         assert compressed[0][2] == 1
         assert compressed[1][2] == 1
+
+    def test_invalid_bbox_treated_as_no_face(self):
+        """Invalid bbox (x2 < x1 or y2 < y1) should be treated as no face."""
+        # Invalid bbox: x2 < x1
+        bboxes = [(340, 160, 300, 200), (300, 160, 340, 200)]
+        compressed, scene_cuts = track_face_crop(bboxes, video_width=640, video_height=360)
+
+        # First frame invalid (no face), second valid
+        assert len(compressed) == 2
+        assert compressed[0][0] == -1  # no-face sentinel
+        assert compressed[0][1] == -1
+        assert compressed[0][2] == 1
+        assert compressed[1][2] == 1  # valid face
+
+    def test_invalid_scene_ranges_skipped(self):
+        bboxes = [(300,160,340,200)] * 10
+        # Invalid: start > end; overlap
+        compressed, scene_cuts = track_face_crop(bboxes, face_scenes=[(5,3), (7,9)])  # invalid + valid
+        assert scene_cuts == [7]  # Only valid start marked

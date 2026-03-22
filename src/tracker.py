@@ -79,10 +79,20 @@ def track_face_crop(
     max_cy = video_height - crop_h / 2.0
 
     # Build scene boundary set for O(1) lookup
-    scene_starts = set()
+    # Validate and filter face_scenes
+    valid_scenes = []
     if face_scenes:
-        for start, _end in face_scenes:
-            scene_starts.add(start)
+        for start, end in face_scenes:
+            if start > end:
+                # Skip invalid range (could log warning)
+                continue
+            # Optional: check overlaps with valid_scenes and merge if needed
+            valid_scenes.append((start, end))
+
+    # Then use valid_scenes instead of face_scenes
+    scene_starts = set()
+    for start, _end in valid_scenes:
+        scene_starts.add(start)
 
     def clamp_crop(cx, cy):
         cx = max(min_cx, min(max_cx, cx))
@@ -93,6 +103,8 @@ def track_face_crop(
         if bbox is None:
             return None
         x1, y1, x2, y2 = bbox
+        if x2 < x1 or y2 < y1:
+            return None  # Invalid bbox, treat as no face
         return ((x1 + x2) / 2.0, (y1 + y2) / 2.0)
 
     # Per-frame crop position computation
