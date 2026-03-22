@@ -33,3 +33,29 @@ class TestTrackFaceCropBasics:
         assert compressed[0][0] == -1
         assert compressed[0][1] == -1
         assert compressed[0][2] == 3  # 3 no-face frames
+
+    def test_deadzone_blocks_small_motion(self):
+        """Small offsets inside dead zone should not create segment splits."""
+        # First frame set crop center; second frame moves only 4px (inside 10.1px dead zone)
+        bboxes = [
+            (310, 160, 330, 200),
+            (314, 160, 334, 200),
+        ]
+        compressed, scene_cuts = track_face_crop(bboxes, video_width=640, video_height=360, deadzone_ratio=0.10)
+
+        assert scene_cuts == []
+        assert len(compressed) == 1
+        assert compressed[0][2] == 2
+
+    def test_scene_cut_forces_instant_snap(self):
+        """A scene boundary should generate a scene_cut and immediate crop jump."""
+        bboxes = [
+            (200, 160, 240, 200),
+            (420, 160, 460, 200),
+        ]
+        compressed, scene_cuts = track_face_crop(bboxes, video_width=640, video_height=360, face_scenes=[(1, 2)])
+
+        assert scene_cuts == [1]
+        assert len(compressed) == 2
+        assert compressed[0][2] == 1
+        assert compressed[1][2] == 1
